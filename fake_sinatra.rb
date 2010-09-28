@@ -1,36 +1,24 @@
 def general_request_method(request_method, path, &block)
-  middleware = Class.new
-  middleware.send(:define_method, 'initialize') do |app|
-    @app = app
+  middleware = Class.new do
+    define_method(:initialize) do |app|
+      @app = app
+    end
+      
+    define_method(:call) do |env|
+      if env["REQUEST_METHOD"] == self.class.request_method && env["PATH_INFO"] == self.class.path
+        action
+      else
+        @app.call(env)
+      end
+    end  
+    
+    define_method(:action)
   end
   
-  middleware.send(:define_method, 'call') do |env|
-    if env["REQUEST_METHOD"] == self.class.request_method && env["PATH_INFO"] == self.class.path
-      action
-    else
-      @app.call(env)
-    end
+  middleware.class.class_eval do
+    attr_accessor :path, :request_method
   end
   
-  middleware.instance_eval do
-    def path=(path)
-      @path = path
-    end
-    
-    def path
-      @path
-    end
-    
-    def request_method=(rm)
-      @rm = rm
-    end
-    
-    def request_method
-      @rm
-    end
-  end
-  
-  middleware.send(:define_method, 'action', &block)
   middleware.path = path
   middleware.request_method = request_method
   
